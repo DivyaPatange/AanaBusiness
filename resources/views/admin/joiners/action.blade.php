@@ -1,0 +1,2 @@
+<a href="{{ route('admin.joiners.edit', $id) }}"><button type="button" class="btn btn-primary btn-sm">Edit</button></a>
+<a href="{{ route('admin.joiners.show', $id) }}"><button type="button" class="btn btn-danger btn-sm">Profile</button></a>
