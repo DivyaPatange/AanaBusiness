@@ -34,6 +34,13 @@
                         <span class="nav-text">Company Tree</span> 
                     </a>
                 </li>
+                <li  class="has-sub" >
+                    <a class="sidenav-item-link" href="{{ route('admin.payment-settlement') }}"
+                        aria-expanded="false" aria-controls="pages">
+                        <i class="mdi mdi-image-filter-none"></i>
+                        <span class="nav-text">Settlement</span>
+                    </a>
+                </li>
                 <!-- <li  class="has-sub" >
                     <a class="sidenav-item-link" href="javascript:void(0)" data-toggle="collapse" data-target="#pages"
                         aria-expanded="false" aria-controls="pages">

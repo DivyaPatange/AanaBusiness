@@ -39,8 +39,72 @@ class UserController extends Controller
                 $userPlan = UserPlan::where('user_id', $referralUser->id)->where('payment_status', 'Successful')->first();
                 if(!empty($userPlan)){
                     $users = User::where('parent_id', $referralUser->id)->select('id')->get();
-                    if(count($users) < 4)
-                    {
+                    if($userPlan->plan_category == "Money Plant"){
+                        if(count($users) < 4)
+                        {
+                            $id = mt_rand(10000000,99999999);
+                            $user = new User();
+                            $user->id = $id;
+                            $user->first_name = $request->first_name;
+                            $user->middle_name = $request->middle_name;
+                            $user->last_name = $request->last_name;
+                            $user->username = $request->username;
+                            $user->password = Hash::make($request->password);
+                            $user->show_password = $request->password;
+                            $user->mobile_no1 = $request->mobile_no1;
+                            $user->mobile_no2 = $request->mobile_no2;
+                            $user->land_line = $request->land_line;
+                            $user->parent_id = $referralUser->id;
+                            $user->email = $request->email;
+                            $user->save();
+    
+                            $userInfo = new UserInfo();
+                            $userInfo->user_id = $id;
+                            $userInfo->dob = $request->dob;
+                            $userInfo->blood_group = $request->blood_group;
+                            $userInfo->promoter_name = $request->promoter_name;
+                            $userInfo->promoter_mobile = $request->promoter_mobile;
+                            $userInfo->address = $request->address;
+                            $userInfo->payment_mode = $request->payment_mode;
+                            $userInfo->city = $request->city;
+                            $userInfo->pincode = $request->pincode;
+                            $image = $request->file('photo');
+                            if($image){
+                            $image_name = rand() . '.' . $image->getClientOriginalExtension();
+                            // $cvrimage->storeAs('public/tempcourseimg',$image_name);
+                            $image->move(public_path('UserPhoto'), $image_name);
+                            $userInfo->photo = $image_name;
+                            }
+                            $userInfo->save();
+    
+                            $plan = new UserPlan();
+                            $plan->user_id = $id;
+                            $plan->plan_category = $userPlan->plan_category;
+                            $plan->plan_amt = $userPlan->plan_amt;
+                            $plan->completion_time = $userPlan->completion_time;
+                            $plan->busi_validity = $userPlan->busi_validity;
+                            $plan->payment_status = "Pending";
+                            $plan->save();
+                            $planOrder = new UserOrder();
+                            $planOrder->user_id = $id;
+                            $planOrder->order_number = 'ORD-'.strtoupper(uniqid());
+                            $planOrder->pay_amount = $plan->plan_amt;
+                            $planOrder->save();
+    
+                            $order = new UserOrder();
+                            $order->user_id = $id;
+                            $order->order_number = 'ORD-'.strtoupper(uniqid());
+                            $order->pay_amount = 100;
+                            $order->save();
+                             
+                            
+                            return redirect()->route('user.payment', $order->id);
+                        }
+                        else{
+                            return Redirect::back()->with('danger', 'You cannot add more than 4 Joiners');
+                        }
+                    }
+                    else{
                         $id = mt_rand(10000000,99999999);
                         $user = new User();
                         $user->id = $id;
@@ -95,10 +159,9 @@ class UserController extends Controller
                         $order->order_number = 'ORD-'.strtoupper(uniqid());
                         $order->pay_amount = 100;
                         $order->save();
+                         
+                        
                         return redirect()->route('user.payment', $order->id);
-                    }
-                    else{
-                        return Redirect::back()->with('danger', 'You cannot add more than 4 Joiners');
                     }
                 }
                 else{
@@ -150,9 +213,28 @@ class UserController extends Controller
             $order->order_number = 'ORD-'.strtoupper(uniqid());
             $order->pay_amount = 100;
             $order->save();
+
             return redirect()->route('user.payment', $order->id);
         }
         
+    }
+    
+    public function sendSms($message,$number)
+    {
+        $url = 'http://sms.bulksmsind.in/v2/sendSMS?username=iceico&message='.$message.'&sendername=ICEICO&smstype=TRANS&numbers='.$number.'&apikey=24ae8ae0-b514-499b-8baf-51d55808a2c4&peid=1201161959563006533&templateid=1207162135988607166';
+        $ch = curl_init();  
+        curl_setopt($ch,CURLOPT_URL,$url);
+        curl_setopt($ch, CURLOPT_POST, true);
+        // curl_setopt($ch, CURLOPT_POSTFIELDS, $url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        
+        curl_setopt($ch,CURLOPT_HEADER, false);
+    
+        $output=curl_exec($ch);
+    
+        curl_close($ch);
+    
+        return $output;
     }
 
     public function getPayment($id)
@@ -267,7 +349,13 @@ class UserController extends Controller
         $payment->payment_datetime = $request->payment_datetime;
         $payment->response_message = $request->response_message;
         $payment->save();
-        $user = User::where('id', $order->user_id)->update(['registration_payment' => 'Yes']);
+        $result = User::where('id', $order->user_id)->update(['registration_payment' => 'Yes']);
+        
+        $user = User::where('id', $order->user_id)->first();
+        $message = "Hello+".urlencode($user->first_name.' '.$user->last_name)."%0aWelcome+to+Aana+Business+"."%0aYour+Login+credentials+are+as+follows:%0aUsername:-+".$user->username."%0aPassword:-+".$user->show_password."%0aRegards,+Aana+Business";
+                
+        $number = $user->mobile_no1;
+        $this->sendSms($message,$number);
         $paymentDetail = UserPayment::where('id', $payment->id)->first();
         return view('auth.success', compact('paymentDetail'));
     }

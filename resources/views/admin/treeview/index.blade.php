@@ -27,8 +27,38 @@
 <div class="row">
     <div class="col-md-12">
         <div class="card card-default">
-            <div class="card-header card-header-border-bottom">
-                <h2>Company Tree</h2>
+            <div class="card-header card-header-border-bottom d-block">
+                <h2 class="mb-3">Company Tree</h2>
+                <div class="row">
+                    <div class="col-md-6 col-lg-6 col-xl-3">
+                		<div class="card widget-block p-4 rounded bg-primary border">
+                			<div class="card-block">
+                				<h4 class="text-white my-2">General Category</h4>
+                			</div>
+                		</div>
+                	</div>
+                	<div class="col-md-6 col-lg-6 col-xl-3">
+                		<div class="card widget-block p-4 rounded bg-warning border">
+                			<div class="card-block">
+                				<h4 class="text-white my-2">Golden Category</h4>
+                			</div>
+                		</div>
+                	</div>
+                	<div class="col-md-6 col-lg-6 col-xl-3">
+                		<div class="card widget-block p-4 rounded bg-danger border">
+                			<div class="card-block">
+                				<h4 class="text-white my-2">Platinum Category</h4>
+                			</div>
+                		</div>
+                	</div>
+                	<div class="col-md-6 col-lg-6 col-xl-3">
+                		<div class="card widget-block p-4 rounded bg-success border">
+                			<div class="card-block">
+                				<h4 class="text-white my-2">Money Plant</h4>
+                			</div>
+                		</div>
+                	</div>
+                </div>
             </div>
             <div class="card-body text-center">
                 <div class="tf-tree example">
@@ -47,11 +77,29 @@
                                     $userPlan = DB::table('user_plans')->where('user_id', $user->id)->where('payment_status', 'Successful')->first();
                                 ?>
                                 @if(!empty($userPlan))
+                                <?php 
+                                    if($userPlan->plan_category == "General Category")
+                                    {
+                                        $color = "#4c84ff";
+                                    }
+                                    elseif($userPlan->plan_category == "Golden Category")
+                                    {
+                                        $color = "#fec400";
+                                    }
+                                    elseif($userPlan->plan_category == "Platinum Category")
+                                    {
+                                        $color = "#fe5461";
+                                    }
+                                    elseif($userPlan->plan_category == "Money Plant")
+                                    {
+                                        $color = "#29cc97";
+                                    }
+                                ?>
                                 <li>
                                 
                                     <span class="tf-nc" style="font-size:15px;">
                                         <a href="#">
-                                            <i class="fas fa-atom" style="font-size:30px; color:red"></i></a>
+                                            <i class="fas fa-atom" style="font-size:30px; color:{{ $color }}"></i></a>
                                         <br>
 
                                         {{ $user->first_name }}&nbsp;{{ $user->middle_name }}&nbsp;{{ $user->last_name }}

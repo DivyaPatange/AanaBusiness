@@ -111,6 +111,7 @@ document.getElementById("demo").innerHTML = days + "d "
                 
                 
                 @if(count($user->childs))
+                
                     @include('user.wallet.manageChild',['childs' => $user->childs])                                                
                 @endif
                                                                 
@@ -137,6 +138,7 @@ document.getElementById("demo").innerHTML = days + "d "
                             <option value="General Category">General Category</option>
                             <option value="Golden Category">Golden Category</option>
                             <option value="Platinum Category">Platinum Category</option>
+                            <option value="Money Plant">Money Plant</option>
                         </select>
                     </div>
                     <div class="form-check hidden" id="showDiv1">
@@ -184,23 +186,50 @@ document.getElementById("demo").innerHTML = days + "d "
                             <span class="form-radio-sign">160 Aana : Rs. 14400</span>
                         </label>
                     </div>
-                    <div class="form-group">
-                        <label for="completion_time">Completion Time <span class="text-danger" id="time_err"></span></label>
-                        <select class="form-control" id="completion_time" name="completion_time">
-                            <option value="">-Select Completion Time-</option>
-                            <option value="9">9 days</option>
-                            <option value="18">18 days</option>
-                            <option value="27">27 days</option>
-                        </select>
+                    <div class="form-check hidden" id="showDiv4">
+                        <label>Plan Amount <span class="text-danger amt_err"></span></label><br>
+                        <label class="form-radio-label">
+                            <input class="form-radio-input" type="radio" name="plan_amt" value="3600">
+                            <span class="form-radio-sign">Rs. 3600</span>
+                        </label>
+                        <label class="form-radio-label ml-3">
+                            <input class="form-radio-input" type="radio" name="plan_amt" value="7200">
+                            <span class="form-radio-sign">Rs. 7200</span>
+                        </label>
+                        <label class="form-radio-label ml-3">
+                            <input class="form-radio-input" type="radio" name="plan_amt" value="14400">
+                            <span class="form-radio-sign">Rs. 14400</span>
+                        </label>
                     </div>
-                    <div class="form-group">
-                        <label for="busi_validity">Business Validity <span class="text-danger" id="validity_err"></span></label>
-                        <select class="form-control" id="busi_validity" name="busi_validity">
-                            <option value="">-Select Business Validity-</option>
-                            <option value="18">18 Months</option>
-                            <option value="36">36 Months</option>
-                            <option value="54">54 Months</option>
-                        </select>
+                    <div id="showDiv5">
+                        <div class="form-group">
+                            <label for="completion_time">Completion Time <span class="text-danger" id="time_err"></span></label>
+                            <select class="form-control" id="completion_time" name="completion_time">
+                                <option value="">-Select Completion Time-</option>
+                                <option value="9">9 days</option>
+                                <option value="18">18 days</option>
+                                <option value="27">27 days</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="busi_validity">Business Validity <span class="text-danger" id="validity_err"></span></label>
+                            <select class="form-control" id="busi_validity" name="busi_validity">
+                                <option value="">-Select Business Validity-</option>
+                                <option value="18">18 Months</option>
+                                <option value="36">36 Months</option>
+                                <option value="54">54 Months</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div id="showDiv6" class="hidden">
+                        <div class="form-group">
+                            <label for="income_settlement">Income Settlement<span class="text-danger" id="settlement_err"></span></label>
+                            <select class="form-control" id="income_settlement" name="income_settlement">
+                                <option value="">-Select Income Settlement-</option>
+                                <option value="1">Per Month</option>
+                                <option value="6">After 6 Month</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
                 <div class="card-action">
@@ -212,7 +241,7 @@ document.getElementById("demo").innerHTML = days + "d "
 </div>
 @else
 <div class="row mt--2">
-    @if($userPlan->payment_status == "Successful")
+    @if(($userPlan->payment_status == "Successful") && ($userPlan->plan_category != "Money Plant"))
     @if($joinerLevel1->status == 0)
     <div class="col-md-7 m-auto" id="hideDiv">
         <div class="card card-stats card-round">
@@ -235,6 +264,112 @@ document.getElementById("demo").innerHTML = days + "d "
     </div>
     @endif
     @endif
+    @if($userPlan->plan_category == "Money Plant")
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Plan Details</h3>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-sm-6 col-md-3">
+                        <div class="card card-stats card-primary card-round">
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-3">
+                                        <div class="icon-big text-center">
+                                            <i class="flaticon-users"></i>
+                                        </div>
+                                    </div>
+                                    <div class="col-9 col-stats">
+                                        <div class="numbers">
+                                            <p class="card-category">Plan Category</p>
+                                            <h4 class="card-title">{{ $userPlan->plan_category }}</h4>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-6 col-md-3">
+                        <div class="card card-stats card-info card-round">
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-5">
+                                        <div class="icon-big text-center">
+                                            <i class="flaticon-interface-6"></i>
+                                        </div>
+                                    </div>
+                                    <div class="col-7 col-stats">
+                                        <div class="numbers">
+                                            <p class="card-category">Plan Amount</p>
+                                            <h4 class="card-title">{{ $userPlan->plan_amt }}</h4>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-6 col-md-3">
+                        <div class="card card-stats card-success card-round">
+                            <div class="card-body ">
+                                <div class="row">
+                                    <div class="col-5">
+                                        <div class="icon-big text-center">
+                                            <i class="flaticon-analytics"></i>
+                                        </div>
+                                    </div>
+                                    <div class="col-7 col-stats">
+                                        <div class="numbers">
+                                            <p class="card-category">Income Settlement</p>
+                                            <h4 class="card-title">@if($userPlan->income_settlement == 1) Per Month @else After 6 Month @endif</h4>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-6 col-md-3">
+                        <div class="card card-stats card-secondary card-round">
+                            <div class="card-body ">
+                                <div class="row">
+                                    <div class="col-5">
+                                        <div class="icon-big text-center">
+                                            <i class="flaticon-success"></i>
+                                        </div>
+                                    </div>
+                                    <div class="col-7 col-stats">
+                                        <div class="numbers">
+                                            <p class="card-category">Business Validity</p>
+                                            <h4 class="card-title">{{ $userPlan->busi_validity }} Months</h4>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <?php
+               $order = DB::table('user_orders')->where('user_id', $userPlan->user_id)->where('pay_amount', $userPlan->plan_amt)->first();
+            //    dd($order);
+            ?>
+            @if(!empty($order))
+            <?php 
+                $userPayment = DB::table('user_payments')->where('order_id', $order->id)->first();
+            ?>
+            @if(empty($userPayment))
+            <div class="card-action">
+                <form method="post" action="{{ route('user.pay', $order->id) }}">
+                    @csrf
+                    <button class="btn btn-success">Payment</button>
+                </form>
+            </div>
+            @endif
+            @endif
+        </div>
+    </div>
+    @else
     <div class="col-md-12">
         <div class="card">
             <div class="card-header">
@@ -383,6 +518,7 @@ document.getElementById("demo").innerHTML = days + "d "
             </div>
         </div>
     </div>
+    @endif
 </div>
 @endif
 @endsection 
@@ -395,16 +531,34 @@ $('#plan').on('change', function() {
         $("#showDiv1").show();
         $("#showDiv2").hide();
         $("#showDiv3").hide();
+        $("#showDiv4").hide();
+        $("#showDiv6").hide();
+        $("#showDiv5").show();
     }
     if(query == "Golden Category")
     {
         $("#showDiv2").show();
         $("#showDiv1").hide();
         $("#showDiv3").hide();
+        $("#showDiv4").hide();
+        $("#showDiv6").hide();
+        $("#showDiv5").show();
     }
     if(query == "Platinum Category")
     {
         $("#showDiv3").show();
+        $("#showDiv2").hide();
+        $("#showDiv1").hide();
+        $("#showDiv4").hide();
+        $("#showDiv6").hide();
+        $("#showDiv5").show();
+    }
+    if(query == "Money Plant")
+    {
+        $("#showDiv4").show();
+        $("#showDiv6").show();
+        $("#showDiv5").hide();
+        $("#showDiv3").hide();
         $("#showDiv2").hide();
         $("#showDiv1").hide();
     }
@@ -412,6 +566,9 @@ $('#plan').on('change', function() {
         $("#showDiv3").hide();
         $("#showDiv2").hide();
         $("#showDiv1").hide();
+        $("#showDiv4").hide();
+        $("#showDiv6").hide();
+        $("#showDiv5").show();
     }
 });
 $('#submitButton').on('click', function() {
@@ -419,6 +576,7 @@ $('#submitButton').on('click', function() {
     var plan_amt = $("input[name='plan_amt']:checked").val();
     var completion_time = $("#completion_time").val();
     var busi_validity = $("#busi_validity").val();
+    var income_settlement = $("#income_settlement").val();
     if (plan=="") {
         $("#plan_err").fadeIn().html("Required");
         setTimeout(function(){ $("#plan_err").fadeOut(); }, 3000);
@@ -431,19 +589,33 @@ $('#submitButton').on('click', function() {
         $("input[name='plan_amt']:checked").focus();
         return false;
     }
-    if (completion_time=="") {
-        $("#time_err").fadeIn().html("Required");
-        setTimeout(function(){ $("#time_err").fadeOut(); }, 3000);
-        $("#completion_time").focus();
-        return false;
-    }
-    if (busi_validity=="") {
-        $("#validity_err").fadeIn().html("Required");
-        setTimeout(function(){ $("#validity_err").fadeOut(); }, 3000);
-        $("#busi_validity").focus();
-        return false;
-    }
-    else{
+    
+    if(plan)
+    {
+        if(plan == "Money Plant")
+        {
+            if(income_settlement == "")
+            {
+                $("#settlement_err").fadeIn().html("Required");
+                setTimeout(function(){ $("#settlement_err").fadeOut(); }, 3000);
+                $("#income_settlement").focus();
+                return false;
+            }
+        }
+        else{
+            if (completion_time=="") {
+                $("#time_err").fadeIn().html("Required");
+                setTimeout(function(){ $("#time_err").fadeOut(); }, 3000);
+                $("#completion_time").focus();
+                return false;
+            }
+            if (busi_validity=="") {
+                $("#validity_err").fadeIn().html("Required");
+                setTimeout(function(){ $("#validity_err").fadeOut(); }, 3000);
+                $("#busi_validity").focus();
+                return false;
+            }
+        }
         $("#submitForm").submit();
     }
 })

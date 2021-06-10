@@ -25,6 +25,7 @@
 </style>
 @endsection
 @section('content')
+@if($authPlan->plan_category != "Money Plant")
 <div class="row mt--2">
     <div class="col-md-12">
         <div class="card">
@@ -76,6 +77,52 @@
         </div>
     </div>
 </div>
+@else
+<div class="row mt--2">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-body text-center bg-dark text-white">
+                <div class="tf-tree example">
+                    <ul>
+                        <li>
+                            <!-- <span class="tf-nc" id="demo"></span> -->
+                            <span class="tf-nc">
+                                <i class="fas fa-atom" style="font-size:25px;"></i>
+                                <br>
+                                {{ Auth::user()->first_name }}&nbsp;{{ Auth::user()->middle_name }}&nbsp;{{ Auth::user()->last_name }}
+                                <br>
+                                {{Auth::user()->username}}
+                            </span>
+                            <ul>
+                                                        
+                                @foreach($users as $user)
+                                <?php
+                                    $userPlan = DB::table('user_plans')->where('user_id', $user->id)->where('payment_status', 'Successful')->first();
+                                ?>
+                                @if(!empty($userPlan))
+                                <li>
+                                
+                                    <span class="tf-nc" style="font-size:15px;">
+                                        <a href="#">
+                                            <i class="fas fa-atom" style="font-size:30px; color:red"></i></a>
+                                        <br>
+
+                                        {{ $user->first_name }}&nbsp;{{ $user->middle_name }}&nbsp;{{ $user->last_name }}
+                                        <br>
+                                        {{ $user->username }}
+                                    </span>
+                                </li>
+                                @endif
+                                @endforeach
+                            </li>
+                        </ul>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+@endif
 @endsection 
 @section('customjs')
 <script src="{{ asset('treeview.js') }}"></script>

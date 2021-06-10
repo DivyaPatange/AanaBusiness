@@ -20,6 +20,37 @@ use App\Http\Controllers\User\ForgotPasswordController;
 |
 */
 
+Route::get('/clear-cache', function () {
+    $exitCode = Artisan::call('config:clear');
+    $exitCode = Artisan::call('cache:clear');
+    $exitCode = Artisan::call('config:cache');
+    return 'DONE'; //Return anything
+});
+
+Route::get('/migrate', function () {
+    $exitCode = Artisan::call('migrate');
+    return 'DONE'; //Return anything
+});
+Route::get('/make-model', function () {
+    $exitCode = Artisan::call('migrate:rollback');
+    return Artisan::output(); //Return anything
+});
+
+Route::get('/routeList', function () {
+    $exitCode = Artisan::call('route:list');
+    return Artisan::output(); //Return anything
+});
+
+Route::get('/seed', function () {
+    $exitCode = Artisan::call('db:seed');
+    return 'DONE'; //Return anything
+});
+
+//create symbolic link for storage
+Route::get('/symlink', function () {
+    return view('symlink');
+});
+
 Route::get('/', function () {
     return view('index');
 });
@@ -68,6 +99,11 @@ Route::prefix('admin')->name('admin.')->group(function() {
     Route::post('/success', [JoinerController::class, 'success']);
     Route::get('/payment-success/{id}', [JoinerController::class, 'paymentSuccess'])->name('payment-success');
     Route::get('/company-tree', [JoinerController::class, 'treeview'])->name('treeview');
+    Route::get('/payment-settlement', [JoinerController::class, 'paymentSettlement'])->name('payment-settlement');
+    Route::post('/payment-settlement', [JoinerController::class, 'generatePaymentSettlement'])->name('generate-payment-settlement');
+    Route::get('/get-payment-settlement/{id}', [JoinerController::class, 'viewPaymentSettlement'])->name('payment-settlement.view');
+    Route::get('/paid-payment-settlement/{id}', [JoinerController::class, 'paidPaymentSettlement'])->name('payment-settlement.paid');
+    Route::post('/payment-settlement/status', [JoinerController::class, 'paymentSettlementStatus'])->name('payment-settlement.status');
 });
 
 Route::post('/payment-success', [App\Http\Controllers\User\UserController::class, 'success']);

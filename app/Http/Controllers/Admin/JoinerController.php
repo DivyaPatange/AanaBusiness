@@ -16,6 +16,8 @@ use App\Models\User\Income;
 use App\Models\User\JoinerLevel;
 use DateTime;
 use App\Models\User\UserWallet;
+use App\Models\Admin\Settlement;
+use App\Models\Admin\PaymentSettlement;
 
 class JoinerController extends Controller
 {
@@ -132,6 +134,24 @@ class JoinerController extends Controller
         $order->save();
         return redirect()->route('admin.payment', $order->id);
     }
+    
+    public function sendSms($message,$number)
+    {
+        $url = 'http://sms.bulksmsind.in/v2/sendSMS?username=iceico&message='.$message.'&sendername=ICEICO&smstype=TRANS&numbers='.$number.'&apikey=24ae8ae0-b514-499b-8baf-51d55808a2c4&peid=1201161959563006533&templateid=1207162135988607166';
+        $ch = curl_init();  
+        curl_setopt($ch,CURLOPT_URL,$url);
+        curl_setopt($ch, CURLOPT_POST, true);
+        // curl_setopt($ch, CURLOPT_POSTFIELDS, $url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        
+        curl_setopt($ch,CURLOPT_HEADER, false);
+    
+        $output=curl_exec($ch);
+    
+        curl_close($ch);
+    
+        return $output;
+    }
 
     /**
      * Display the specified resource.
@@ -152,6 +172,17 @@ class JoinerController extends Controller
         $userOrder = UserOrder::where('user_id', $id)->where('pay_amount', $userPlan->plan_amt)->first();
         $userPayment = UserPayment::where('order_id', $userOrder->id)->first();
         // dd($userPayment);
+        if(!empty($userPlan)){
+            $userOrder = UserOrder::where('user_id', $id)->where('pay_amount', $userPlan->plan_amt)->first();
+            $userPayment = UserPayment::where('order_id', $userOrder->id)->first();
+            // $order = UserOrder::where('user_id', Auth::user()->id)->where('pay_amount', $userPlan->plan_amt)->first();
+            // $payment = UserPayment::where('order_id', $order->id)->first();
+            $paymentDate = new DateTime($userPayment->payment_datetime);
+            $converted_at = $paymentDate->format('Y-m-d');
+            $dt = strtotime($converted_at);
+            $busiValidity = $userPlan->busi_validity." months";
+            $extendedDate = date("Y-m-d", strtotime($busiValidity , $dt));
+        }
         $incomelevel1 = Income::where('user_id', $id)->where('level', 1)->get();
         $incomelevel2 = Income::where('user_id', $id)->where('level', 2)->get();
         $incomelevel3 = Income::where('user_id', $id)->where('level', 3)->get();
@@ -606,7 +637,13 @@ class JoinerController extends Controller
         $payment->payment_datetime = $request->payment_datetime;
         $payment->response_message = $request->response_message;
         $payment->save();
-        $user = User::where('id', $order->user_id)->update(['registration_payment' => 'Yes']);
+        $result = User::where('id', $order->user_id)->update(['registration_payment' => 'Yes']);
+        
+        $user = User::where('id', $order->user_id)->first();
+        $message = "Hello+".urlencode($user->first_name.' '.$user->last_name)."%0aWelcome+to+Aana+Business+"."%0aYour+Login+credentials+are+as+follows:%0aUsername:-+".$user->username."%0aPassword:-+".$user->show_password."%0aRegards,+Aana+Business";
+                
+        $number = $user->mobile_no1;
+        $this->sendSms($message,$number);
         $paymentDetail = UserPayment::where('id', $payment->id)->first();
         return redirect()->route('admin.payment-success', $paymentDetail->id);
     }
@@ -627,5 +664,180 @@ class JoinerController extends Controller
         return view('admin.treeview.index',compact('users','allMenus'));
     }
 
+    public function paymentSettlement()
+    {
+        $settlement = Settlement::all();
+        if(request()->ajax())
+        {
+            return datatables()->of($settlement)
+            ->addColumn('month', function($row){
+                $month = date('F', mktime(0,0,0,$row->month, 1, date('Y')));
+                return $month;
+            })
+            ->addColumn('action', function($row){
+                $route = route('admin.payment-settlement.view', $row->id);
+                return '<a href="'.$route.'"><button type="button" class="btn btn-primary">View</button></a>';
+            })
+            ->rawColumns(['start_date', 'end_date', 'action'])
+            ->addIndexColumn()
+            ->make(true);
+        }
+        return view('admin.payment-settlement.index');
+    }
+    
+    public function generatePaymentSettlement(Request $request)
+    {
+        $users = DB::table('users')->where('status', 'Active')->where('registration_payment', 'Yes')->join('user_plans', 'user_plans.user_id', '=', 'users.id')->select('users.*', 'user_plans.plan_category', 'user_plans.plan_amt', 'user_plans.plan_category', 'user_plans.income_settlement', 'user_plans.payment_status')->where('payment_status', 'Successful')->where('plan_category', 'Money Plant')->get();
+        $year = $request->year;
+        $start_date = $year.'-'.$request->month.'-01';
+        $end_date = date("Y-m-t", strtotime($start_date));
+        $prev_month_ts = strtotime($start_date.' -1 month');
+        $prev_month = date('m', $prev_month_ts);
+        $prev_year = date('Y', $prev_month_ts);
+        $dt = $prev_year.'-'.$prev_month;
+        $month = date('m', mktime(0,0,0,$request->month, 1, date('Y')));
+        $startDate = date("Y-m-01", strtotime($dt));
+        $endDate = date("Y-m-t", strtotime($dt));
+        $settlement = DB::table('settlements')->where('start_date', $start_date)->where('end_date', $end_date)->first();
+        if(empty($settlement)){
+            $settlement = new Settlement();
+            $settlement->month = $month;
+            $settlement->year = $year;
+            $settlement->start_date = $start_date;
+            $settlement->end_date = $end_date;
+            $settlement->prev_start_date = $startDate;
+            $settlement->prev_end_date = $endDate;
+            $settlement->save();
+            foreach($users as $user)
+            {
+                if($user->plan_amt == 3600)
+                {
+                    $perMonth = 400;
+                    $afterSixMonth = 3000;
+                    $perJoin = 600;
+                }
+                elseif($user->plan_amt == 7200)
+                {
+                    $perMonth = 900;
+                    $afterSixMonth = 6200;
+                    $perJoin = 1400;
+                }
+                elseif($user->plan_amt == 14400){
+                    $perMonth = 2100;
+                    $afterSixMonth = 13400;
+                    $perJoin = 3000;
+                }
+                $userOrderDetail = UserOrder::where('user_id', $user->id)->where('pay_amount', $user->plan_amt)->first();
+                $userPaymentDetail = UserPayment::where('order_id', $userOrderDetail->id)->first();
+                
+                $busiStartDateConvert = strtotime($userPaymentDetail->payment_datetime);
+                $busiStartDate = date("Y-m-d", strtotime("+1 month", $busiStartDateConvert));
+                $busiEndDate = date("Y-m-d", strtotime("+7 month", $busiStartDateConvert));
+                $busiStartMonth = date("m", strtotime($busiStartDate));
+                $busiStartYear = date("Y", strtotime($busiStartDate));
+                $busiEndMonth = date("m", strtotime($busiEndDate));
+                $busiEndYear = date("Y", strtotime($busiEndDate));
+                $planEndDate = date("Y-m-d", strtotime("+6 month", $busiStartDateConvert));
+                $planEndCalDate = date("Y-m-t", strtotime($planEndDate));
+                if($user->income_settlement == 1)
+                {
+                    $joiner = DB::table('users')->where('parent_id', $user->id)->where('registration_payment', 'Yes')->join('user_plans', 'user_plans.user_id', '=', 'users.id')->select('user_plans.*', 'users.parent_id', 'users.registration_payment')->where('user_plans.plan_category', 'Money Plant')->where('user_plans.payment_status', 'Successful')->where('user_plans.payment_date', '!=', null)->whereBetween('user_plans.payment_date', [$startDate, $endDate])->get();
+                    // return $joiner;
+                    if((date("Y-m", strtotime($request->year.'-'.$request->month)) >= date("Y-m", strtotime($busiStartYear.'-'.$busiStartMonth))) && (date("Y-m", strtotime($request->year.'-'.$request->month)) <= date("Y-m", strtotime($busiEndYear.'-'.$busiEndMonth))))
+                    {
+                        if(date("Y-m", strtotime($request->year.'-'.$request->month)) == date("Y-m", strtotime($busiEndYear.'-'.$busiEndMonth))){
+                            $total = $perMonth + (count($joiner) * $perJoin) + $user->plan_amt;
+                        }
+                        else{
+                            $total = $perMonth + (count($joiner) * $perJoin);
+                        }
+                        $paymentSettlement = new PaymentSettlement();
+                        $paymentSettlement->settlement_id = $settlement->id;
+                        $paymentSettlement->user_id = $user->id;
+                        $paymentSettlement->total = $total;
+                        $paymentSettlement->from_date = $startDate;
+                        $paymentSettlement->to_date = $endDate;
+                        $paymentSettlement->save();
+                    }
+                }
+                elseif($user->income_settlement == 6)
+                {
+                    $joiner = User::where('parent_id', $user->id)->where('registration_pay', 'Yes')->join('user_plans', 'user_plans.user_id', '=', 'users.id')->select('user_plans.*')->where('user_plans.plan_category', 'Money Plant')->where('user_plans.payment_status', 'Successful')->whereBetween('user_plans.payment_date', [$startDate, $planEndCalDate])->get();
+                    $total = $perMonth + (count($joiner) * $perJoin) + $user->plan_amt;
+                    $paymentSettlement = new PaymentSettlement();
+                    $paymentSettlement->settlement_id = $settlement->id;
+                    $paymentSettlement->user_id = $user->id;
+                    $paymentSettlement->total = $total;
+                    $paymentSettlement->from_date = $startDate;
+                    $paymentSettlement->to_date = $planEndCalDate;
+                    $paymentSettlement->save();
+                }
+            }
+            return response()->json(['success' => 'Payment Settlement Generated Successfully!']);
+        }
+        else{
+            return response()->json(['error' => 'Payment Settlement Already Generated!']);
+        }
+    }
+    
+    public function viewPaymentSettlement($id)
+    {
+        $settlement = Settlement::findorfail($id);
+        $paymentSettlement = PaymentSettlement::where('settlement_id', $id)->where('settled_status', 0)->get();
+        if(request()->ajax())
+        {
+            return datatables()->of($paymentSettlement)
+            ->addColumn('name', function($row){
+                $user = User::where('id', $row->user_id)->first();
+                if(!empty($user)){
+                    return $user->first_name." ".$user->middle_name." ".$user->last_name;
+                }
+            })
+            ->addColumn('action', function($row){
+                return '<button type="button" id="status" data-id="'.$row->id.'" class="btn btn-success">Clear Due</button>';
+            })
+            ->rawColumns(['name', 'action'])
+            ->addIndexColumn()
+            ->make(true);
+        }
+        return view('admin.payment-settlement.view', compact('settlement'));
+    }
+    
+    public function paidPaymentSettlement($id)
+    {
+        $settlement = Settlement::findorfail($id);
+        $paymentSettlement = PaymentSettlement::where('settlement_id', $id)->where('settled_status', 1)->get();
+        if(request()->ajax())
+        {
+            return datatables()->of($paymentSettlement)
+            ->addColumn('name', function($row){
+                $user = User::where('id', $row->user_id)->first();
+                if(!empty($user)){
+                    return $user->first_name." ".$user->middle_name." ".$user->last_name;
+                }
+            })
+            ->addColumn('action', function($row){
+                return '<button type="button" id="status" data-id="'.$row->id.'" class="btn btn-danger">Revert Due</button>';
+            })
+            ->rawColumns(['name', 'action'])
+            ->addIndexColumn()
+            ->make(true);
+        }
+    }
+    
+    public function paymentSettlementStatus(Request $request)
+    {
+        $due_id = $request->id;
+        $paymentSettlement = PaymentSettlement::where('id', $due_id)->first();
+        if($paymentSettlement->settled_status == 0)
+        {
+            DB::table('payment_settlements')->where('id',$due_id)->update(['settled_status' => 1, 'settled_date' => date('Y-m-d')]);
+            return response()->json(['success' => 'Due Settled Successfully!']);
+        }
+        else{
+            DB::table('payment_settlements')->where('id',$due_id)->update(['settled_status' => 0, 'settled_date' => date('Y-m-d')]);
+            return response()->json(['success' => 'Due Reverted Successfully!']);
+        }
+    }
    
 }
